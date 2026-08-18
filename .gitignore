@@ -1,0 +1,6 @@
+venv2
+.env
+__pycache__/
+*.pyc
+talentiq.db
+uploads/

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TalentIQ — Resume Intelligence</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f8f7f4; --surface: #ffffff; --border: rgba(0,0,0,0.08);
+    --text: #1a1a18; --muted: #6b6b67; --hint: #9c9a92;
+    --purple: #534AB7; --purple-light: #EEEDFE; --purple-dark: #3C3489;
+    --teal: #1D9E75; --teal-light: #E1F5EE;
+    --amber: #EF9F27; --amber-light: #FAEEDA;
+    --red: #E24B4A; --red-light: #FCEBEB;
+    --radius: 12px; --radius-sm: 8px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .header { background: var(--surface); border-bottom: 0.5px solid var(--border); padding: 0 2rem; height: 56px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; }
+  .logo { font-size: 16px; font-weight: 600; color: var(--purple); }
+  .logo span { color: var(--text); font-weight: 400; }
+  .badge { font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 20px; background: var(--purple-light); color: var(--purple-dark); }
+  .main { max-width: 1100px; margin: 0 auto; padding: 2rem; }
+  .section-title { font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 1rem; }
+  .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1rem; }
+  .upload-area { border: 1.5px dashed var(--border); border-radius: var(--radius); padding: 2.5rem; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; position: relative; }
+  .upload-area:hover, .upload-area.dragover { border-color: var(--purple); background: var(--purple-light); }
+  .upload-area input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-icon { width: 40px; height: 40px; background: var(--purple-light); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
+  .upload-icon svg { width: 20px; height: 20px; stroke: var(--purple); fill: none; stroke-width: 2; stroke-linecap: round; }
+  .upload-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+  .upload-sub { font-size: 12px; color: var(--muted); }
+  .file-list { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .file-pill { background: var(--purple-light); color: var(--purple-dark); font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 20px; display: flex; align-items: center; gap: 6px; }
+  .file-pill button { background: none; border: none; cursor: pointer; color: var(--purple); font-size: 14px; line-height: 1; padding: 0; }
+  textarea { width: 100%; min-height: 120px; border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-size: 13px; font-family: inherit; resize: vertical; color: var(--text); background: var(--bg); outline: none; transition: border-color 0.2s; }
+  textarea:focus { border-color: var(--purple); background: var(--surface); }
+  .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1rem; }
+  input[type=text], input[type=password] { width: 100%; border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 13px; font-family: inherit; color: var(--text); background: var(--bg); outline: none; transition: border-color 0.2s; }
+  input:focus { border-color: var(--purple); background: var(--surface); }
+  label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 5px; }
+  .btn { padding: 10px 24px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; border: none; }
+  .btn-primary { background: var(--purple); color: white; }
+  .btn-primary:hover { background: var(--purple-dark); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-outline { background: transparent; border: 0.5px solid var(--border); color: var(--text); }
+  .btn-outline:hover { background: var(--bg); }
+  .loading { display: none; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); padding: 1rem 0; }
+  .spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--purple); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: gap; gap: 12px; }
+  .results-header h2 { font-size: 18px; font-weight: 500; }
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+  .stat-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 14px; text-align: center; }
+  .stat-value { font-size: 24px; font-weight: 500; color: var(--purple); }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+  .chart-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+  .chart-title { font-size: 13px; font-weight: 500; margin-bottom: 1rem; color: var(--muted); }
+  .candidates-grid { display: flex; flex-direction: column; gap: 10px; }
+  .candidate-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1.25rem; transition: border-color 0.2s; cursor: pointer; }
+  .candidate-card:hover { border-color: var(--purple); }
+  .candidate-card.expanded { border-color: var(--purple); }
+  .cand-top { display: flex; align-items: center; gap: 14px; }
+  .rank-badge { width: 32px; height: 32px; border-radius: 50%; background: var(--purple-light); color: var(--purple-dark); font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .rank-badge.gold { background: #FAEEDA; color: #633806; }
+  .rank-badge.silver { background: #F1EFE8; color: #444441; }
+  .rank-badge.bronze { background: #FAECE7; color: #712B13; }
+  .cand-info { flex: 1; }
+  .cand-name { font-size: 14px; font-weight: 500; }
+  .cand-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .score-block { text-align: right; }
+  .score-num { font-size: 22px; font-weight: 600; }
+  .score-grade { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 20px; display: inline-block; margin-top: 2px; }
+  .score-high { color: var(--teal); }
+  .score-mid { color: var(--amber); }
+  .score-low { color: var(--red); }
+  .grade-a { background: var(--teal-light); color: #085041; }
+  .grade-b { background: var(--purple-light); color: var(--purple-dark); }
+  .grade-c { background: var(--amber-light); color: #633806; }
+  .grade-d { background: var(--red-light); color: #791F1F; }
+  .score-bar { height: 4px; border-radius: 2px; background: var(--bg); margin-top: 10px; overflow: hidden; }
+  .score-bar-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+  .detail-panel { display: none; margin-top: 1.25rem; padding-top: 1.25rem; border-top: 0.5px solid var(--border); }
+  .detail-panel.open { display: block; }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+  .detail-section h4 { font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .skill-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pill { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; }
+  .pill-match { background: var(--teal-light); color: #085041; }
+  .pill-miss { background: var(--red-light); color: #791F1F; }
+  .pill-bonus { background: var(--purple-light); color: var(--purple-dark); }
+  .summary-box { background: var(--bg); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 1rem; }
+  .suggestion-list { list-style: none; }
+  .suggestion-list li { font-size: 12px; color: var(--muted); padding: 4px 0; border-bottom: 0.5px solid var(--border); line-height: 1.5; }
+  .suggestion-list li:last-child { border-bottom: none; }
+  .suggestion-list li::before { content: "→ "; color: var(--purple); font-weight: 500; }
+  .empty-state { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+  .empty-state svg { width: 48px; height: 48px; stroke: var(--hint); fill: none; stroke-width: 1.5; margin-bottom: 1rem; }
+  .empty-title { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 6px; }
+  .empty-sub { font-size: 13px; }
+  .alert { padding: 12px 16px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 1rem; }
+  .alert-error { background: var(--red-light); color: #791F1F; border: 0.5px solid #F09595; }
+  #results-section { display: none; }
+  @media (max-width: 700px) {
+    .input-row, .stats-row, .charts-row, .detail-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">Talent<span>IQ</span></div>
+  <span class="badge">Multi-Agent AI</span>
+</div>
+
+<div class="main">
+
+  <div class="card" id="upload-card">
+    <div class="section-title">Upload Resumes</div>
+
+    <div class="upload-area" id="upload-area">
+      <input type="file" id="file-input" multiple accept=".pdf,.docx,.txt">
+      <div class="upload-icon">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </div>
+      <div class="upload-title">Drop resumes here or click to browse</div>
+      <div class="upload-sub">PDF, DOCX, TXT — up to 20 files</div>
+    </div>
+    <div class="file-list" id="file-list"></div>
+
+    <div style="margin-top:1.25rem">
+      <label>Job Description</label>
+      <textarea id="job-desc" placeholder="Paste the full job description here — requirements, responsibilities, tech stack..."></textarea>
+    </div>
+
+    <div class="input-row" style="margin-top:1rem">
+      <div>
+        <label>HuggingFace API Key</label>
+        <input type="password" id="api-key" placeholder="hf_...">
+      </div>
+      <div style="display:flex;align-items:flex-end">
+        <button class="btn btn-primary" id="analyze-btn" onclick="analyze()" style="width:100%">Analyze Resumes</button>
+      </div>
+    </div>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <span id="loading-text">Processing resumes through AI pipeline...</span>
+    </div>
+
+    <div id="error-box"></div>
+  </div>
+
+  <div id="results-section">
+    <div class="results-header">
+      <h2 id="results-title">Ranked Candidates</h2>
+      <button class="btn btn-outline" onclick="resetForm()">New Analysis</button>
+    </div>
+
+    <div class="stats-row" id="stats-row"></div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">Score distribution</div>
+        <canvas id="score-chart" height="180"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Skills coverage</div>
+        <canvas id="skills-chart" height="180"></canvas>
+      </div>
+    </div>
+
+    <div class="section-title">Candidates — ranked by match score</div>
+    <div class="candidates-grid" id="candidates-grid"></div>
+  </div>
+
+</div>
+
+<script>
+let selectedFiles = []
+let charts = []
+
+const fileInput = document.getElementById('file-input')
+const fileList = document.getElementById('file-list')
+const uploadArea = document.getElementById('upload-area')
+
+fileInput.addEventListener('change', e => addFiles(Array.from(e.target.files)))
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover') })
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'))
+uploadArea.addEventListener('drop', e => { e.preventDefault(); uploadArea.classList.remove('dragover'); addFiles(Array.from(e.dataTransfer.files)) })
+
+function addFiles(files) {
+  files.forEach(f => {
+    if (!selectedFiles.find(x => x.name === f.name)) selectedFiles.push(f)
+  })
+  renderFileList()
+}
+
+function removeFile(name) {
+  selectedFiles = selectedFiles.filter(f => f.name !== name)
+  renderFileList()
+}
+
+function renderFileList() {
+  fileList.innerHTML = selectedFiles.map(f => `
+    <div class="file-pill">
+      ${f.name}
+      <button onclick="removeFile('${f.name}')" title="Remove">×</button>
+    </div>
+  `).join('')
+}
+
+function scoreColor(s) { return s >= 75 ? 'var(--teal)' : s >= 50 ? 'var(--amber)' : 'var(--red)' }
+function gradeClass(g) {
+  if (!g) return 'grade-c'
+  if (g.startsWith('A')) return 'grade-a'
+  if (g.startsWith('B')) return 'grade-b'
+  if (g.startsWith('C')) return 'grade-c'
+  return 'grade-d'
+}
+function rankClass(r) { return r === 1 ? 'gold' : r === 2 ? 'silver' : r === 3 ? 'bronze' : '' }
+
+async function analyze() {
+  const jobDesc = document.getElementById('job-desc').value.trim()
+  const apiKey = document.getElementById('api-key').value.trim()
+
+  if (!selectedFiles.length) return showError('Please upload at least one resume.')
+  if (!jobDesc) return showError('Please enter a job description.')
+  if (!apiKey) return showError('Please enter your HuggingFace API key.')
+
+  document.getElementById('error-box').innerHTML = ''
+  document.getElementById('analyze-btn').disabled = true
+  document.getElementById('loading').style.display = 'flex'
+  document.getElementById('results-section').style.display = 'none'
+
+  try {
+    let candidates = []
+
+    if (selectedFiles.length === 1) {
+      document.getElementById('loading-text').textContent = `Analyzing ${selectedFiles[0].name}...`
+      const formData = new FormData()
+      formData.append('file', selectedFiles[0])
+      formData.append('job_description', jobDesc)
+      formData.append('api_key', apiKey)
+
+      const res = await fetch('/api/v1/parse', { method: 'POST', body: formData })
+      const text = await res.text()
+      let data
+      try { data = JSON.parse(text) } catch { throw new Error(text || `Server returned status ${res.status} with no body`) }
+      if (!res.ok) throw new Error(data.detail || 'Processing failed')
+      if (data.error) throw new Error(data.error)
+      if (data.candidate) candidates = [{ ...data.candidate, rank: 1 }]
+    } else {
+      document.getElementById('loading-text').textContent = `Processing ${selectedFiles.length} resumes...`
+      const formData = new FormData()
+      selectedFiles.forEach(f => formData.append('files', f))
+      formData.append('job_description', jobDesc)
+      formData.append('api_key', apiKey)
+
+      const res = await fetch('/api/v1/parse/batch', { method: 'POST', body: formData })
+      const text = await res.text()
+      let data
+      try { data = JSON.parse(text) } catch { throw new Error(text || `Server returned status ${res.status} with no body`) }
+      if (!res.ok) throw new Error(data.detail || 'Batch processing failed')
+      candidates = data.ranked_candidates || []
+    }
+
+    renderResults(candidates, jobDesc)
+  } catch (err) {
+    showError(err.message || 'Something went wrong. Check your API key and try again.')
+  } finally {
+    document.getElementById('analyze-btn').disabled = false
+    document.getElementById('loading').style.display = 'none'
+  }
+}
+
+function renderResults(candidates, jobDesc) {
+  if (!candidates.length) { showError('No candidates could be processed.'); return }
+
+  document.getElementById('results-section').style.display = 'block'
+  document.getElementById('results-title').textContent = `${candidates.length} Candidate${candidates.length > 1 ? 's' : ''} — Ranked by Match Score`
+
+  const avg = Math.round(candidates.reduce((s, c) => s + (c.overall_score || 0), 0) / candidates.length)
+  const top = candidates[0]
+  const strongCount = candidates.filter(c => (c.overall_score || 0) >= 70).length
+
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-card"><div class="stat-value">${candidates.length}</div><div class="stat-label">Candidates</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:var(--teal)">${top?.overall_score || 0}</div><div class="stat-label">Top score</div></div>
+    <div class="stat-card"><div class="stat-value">${avg}</div><div class="stat-label">Average score</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:var(--purple)">${strongCount}</div><div class="stat-label">Strong matches</div></div>
+  `
+
+  charts.forEach(c => c.destroy())
+  charts = []
+
+  const scoreCtx = document.getElementById('score-chart').getContext('2d')
+  charts.push(new Chart(scoreCtx, {
+    type: 'bar',
+    data: {
+      labels: candidates.map(c => c.name?.split(' ')[0] || 'Candidate'),
+      datasets: [{
+        data: candidates.map(c => c.overall_score || 0),
+        backgroundColor: candidates.map(c => {
+          const s = c.overall_score || 0
+          return s >= 75 ? '#1D9E7540' : s >= 50 ? '#EF9F2740' : '#E24B4A40'
+        }),
+        borderColor: candidates.map(c => {
+          const s = c.overall_score || 0
+          return s >= 75 ? '#1D9E75' : s >= 50 ? '#EF9F27' : '#E24B4A'
+        }),
+        borderWidth: 1.5, borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true, plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, max: 100, grid: { color: '#00000008' } }, x: { grid: { display: false } } }
+    }
+  }))
+
+  const allMatched = candidates.flatMap(c => c.matched_skills || [])
+  const skillCounts = {}
+  allMatched.forEach(s => { skillCounts[s] = (skillCounts[s] || 0) + 1 })
+  const topSkills = Object.entries(skillCounts).sort((a,b) => b[1]-a[1]).slice(0, 8)
+
+  const skillsCtx = document.getElementById('skills-chart').getContext('2d')
+  charts.push(new Chart(skillsCtx, {
+    type: 'doughnut',
+    data: {
+      labels: topSkills.map(s => s[0]),
+      datasets: [{ data: topSkills.map(s => s[1]), backgroundColor: ['#534AB7','#1D9E75','#EF9F27','#D85A30','#3B8BD4','#D4537E','#639922','#888780'], borderWidth: 0 }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'right', labels: { font: { size: 11 }, boxWidth: 10 } } } }
+  }))
+
+  document.getElementById('candidates-grid').innerHTML = candidates.map((c, i) => {
+    const score = c.overall_score || 0
+    const matched = (c.matched_skills || []).slice(0, 6)
+    const missing = (c.missing_skills || []).slice(0, 4)
+    const bonus = (c.bonus_skills || []).slice(0, 3)
+    const suggestions = (c.upskilling_suggestions || []).slice(0, 3)
+
+    return `
+    <div class="candidate-card" id="cand-${i}" onclick="toggleDetail(${i})">
+      <div class="cand-top">
+        <div class="rank-badge ${rankClass(c.rank || i+1)}">#${c.rank || i+1}</div>
+        <div class="cand-info">
+          <div class="cand-name">${c.name || 'Unknown'}</div>
+          <div class="cand-meta">${c.total_experience_years || 0} yrs exp${c.email ? ' · ' + c.email : ''} · ${c.verdict || ''}</div>
+        </div>
+        <div class="score-block">
+          <div class="score-num" style="color:${scoreColor(score)}">${score}</div>
+          <div class="score-grade ${gradeClass(c.grade)}">${c.grade || 'N/A'}</div>
+        </div>
+      </div>
+      <div class="score-bar"><div class="score-bar-fill" style="width:${score}%;background:${scoreColor(score)}"></div></div>
+      <div class="detail-panel" id="detail-${i}">
+        <div class="summary-box">${c.summary || 'No summary available.'}</div>
+        <div class="detail-grid">
+          <div class="detail-section">
+            <h4>Matched skills (${matched.length})</h4>
+            <div class="skill-pills">${matched.map(s => `<span class="pill pill-match">${s}</span>`).join('')}</div>
+          </div>
+          <div class="detail-section">
+            <h4>Missing skills (${missing.length})</h4>
+            <div class="skill-pills">${missing.map(s => `<span class="pill pill-miss">${s}</span>`).join('')}</div>
+          </div>
+          ${bonus.length ? `
+          <div class="detail-section">
+            <h4>Bonus skills</h4>
+            <div class="skill-pills">${bonus.map(s => `<span class="pill pill-bonus">${s}</span>`).join('')}</div>
+          </div>` : ''}
+          ${suggestions.length ? `
+          <div class="detail-section">
+            <h4>Upskilling suggestions</h4>
+            <ul class="suggestion-list">${suggestions.map(s => `<li>${s}</li>`).join('')}</ul>
+          </div>` : ''}
+        </div>
+      </div>
+    </div>`
+  }).join('')
+
+  document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' })
+}
+
+function toggleDetail(i) {
+  const panel = document.getElementById('detail-' + i)
+  const card = document.getElementById('cand-' + i)
+  panel.classList.toggle('open')
+  card.classList.toggle('expanded')
+}
+
+function showError(msg) {
+  document.getElementById('error-box').innerHTML = `<div class="alert alert-error">${msg}</div>`
+}
+
+function resetForm() {
+  selectedFiles = []
+  renderFileList()
+  document.getElementById('job-desc').value = ''
+  document.getElementById('results-section').style.display = 'none'
+  document.getElementById('error-box').innerHTML = ''
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+</script>
+</body>
+</html>
