@@ -3,7 +3,7 @@
 > An end-to-end multi-agent AI pipeline that parses resumes, normalises skills against a curated taxonomy, and semantically matches candidates against a job description — powered by **Llama 3.3 70B** via the Hugging Face Inference API.
 
 <p align="center">
-  <img src="assets/screenshot_1_upload.jpg" alt="TalentIQ Upload & Analysis UI" width="100%"/>
+  <img src="assets/screenshot_1_upload.png" alt="TalentIQ Upload & Analysis UI" width="100%"/>
 </p>
 
 <p align="center">
