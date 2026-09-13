@@ -39,8 +39,6 @@ def run_pipeline(
     # Stage 2 — Normalize
     try:
         raw_skills = parsed.get("skills", [])
-        for exp in parsed.get("experience", []):
-            pass
         for proj in parsed.get("projects", []):
             raw_skills += proj.get("technologies", [])
 

@@ -7,5 +7,5 @@ if __name__ == "__main__":
         port=8000,
         reload=True,
         reload_includes=["*.py"],
-        reload_excludes=["uploads/*", "*.db", "venv2/*", "__pycache__/*"],
+        reload_excludes=["uploads/*", "*.db", "__pycache__/*"],
     )

@@ -5,6 +5,13 @@ import json
 from pathlib import Path
 from typing import Optional
 
+from dotenv import load_dotenv
+
+# Load .env from the project root first, then try agents/.env as a fallback.
+# Shell exports always take priority (override=False is the default).
+load_dotenv()                                          # project root .env
+load_dotenv(Path(__file__).parent / "agents" / ".env") # agents/.env fallback
+
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -170,9 +177,15 @@ async def parse_batch_resumes(
     conn.commit()
     conn.close()
 
+    allowed = [".pdf", ".docx", ".txt"]
     file_paths = []
     for file in files:
         suffix = Path(file.filename).suffix.lower()
+        if suffix not in allowed:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File '{file.filename}': type {suffix} not supported. Use PDF, DOCX, or TXT."
+            )
         file_id = str(uuid.uuid4())
         file_path = UPLOAD_DIR / f"{file_id}{suffix}"
         with open(file_path, "wb") as f:

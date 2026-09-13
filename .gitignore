@@ -1,6 +1,33 @@
-venv2
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment / secrets — NEVER commit these
 .env
+agents/.env
+
+# Python cache
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+*.pyd
+
+# Database and uploads (local runtime artefacts)
 talentiq.db
 uploads/
+
+# OS / editor artefacts
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
